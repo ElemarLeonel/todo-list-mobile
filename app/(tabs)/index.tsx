@@ -3,12 +3,11 @@ import { FlatList, TouchableOpacity, Alert } from "react-native";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import styled from "styled-components/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export interface Task {
   id: string;
-  description: string;
+  title: string;
   completed: boolean;
   createdAt: string;
 }
@@ -72,16 +71,16 @@ const EmptyStateText = styled.Text`
 `;
 
 export default function TaskList() {
-  const API_URL = process.env.API_URL || "http://localhost:3000";
+  const API_URL = process.env.API_URL || "http://192.168.1.7:3000";
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const loadTasks = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/`);
+      const response = await fetch(`${API_URL}/todos`);
       const data = await response.json();
       setTasks(data);
     } catch (error) {
-      console.error("Error loading tasks:", error);
+      console.error("Erro ao carregar as tarefas:", error);
       Alert.alert("Erro", "Não foi possível carregar as tarefas.");
     }
   }, []);
@@ -90,12 +89,12 @@ export default function TaskList() {
     loadTasks();
   }, [loadTasks]);
 
-  const toggleTask = async (id: number) => {
+  const toggleTask = async (id: string) => {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
     try {
-      const response = await fetch(`${API_URL}/${id}`, {
+      const response = await fetch(`${API_URL}/todos/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,7 +108,7 @@ export default function TaskList() {
       const updatedTask = await response.json();
       setTasks((prev) => prev.map((t) => (t.id === id ? updatedTask : t)));
     } catch (error) {
-      console.error("Error toggling task:", error);
+      console.error("Erro ao finalizar a tarefa:", error);
       Alert.alert("Erro", "Não foi possível atualizar a tarefa.");
     }
   };

@@ -3,7 +3,6 @@ import { Alert } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Task } from "../(tabs)";
 
 const Container = styled.View`
@@ -78,6 +77,7 @@ const ButtonText = styled.Text`
 export default function TaskDetails() {
   const { id } = useLocalSearchParams();
   const [task, setTask] = useState<Task | null>(null);
+  const API_URL = process.env.API_URL || "http://192.168.1.7:3000";
 
   useEffect(() => {
     loadTask();
@@ -85,18 +85,20 @@ export default function TaskDetails() {
 
   const loadTask = async () => {
     try {
-      const storedTasks = await AsyncStorage.getItem("tasks");
-      if (storedTasks) {
-        const tasks = JSON.parse(storedTasks);
-        const foundTask = tasks.find((t: Task) => t.id === id);
-        setTask(foundTask || null);
+      const response = await fetch(`${API_URL}/todos/${id}`);
+
+      if (!response.ok) {
+        throw new Error("Erro ao buscar a tarefa");
       }
+
+      const taskData = await response.json();
+      setTask(taskData);
     } catch (error) {
-      console.error("Error loading task:", error);
+      console.error("Erro ao carregar a tarefa:", error);
     }
   };
 
-  const deleteTask = async () => {
+  const deleteTask = (id: string) => {
     Alert.alert(
       "Confirmar exclusão",
       "Tem certeza que deseja excluir esta tarefa?",
@@ -107,18 +109,18 @@ export default function TaskDetails() {
           style: "destructive",
           onPress: async () => {
             try {
-              const storedTasks = await AsyncStorage.getItem("tasks");
-              if (storedTasks) {
-                const tasks = JSON.parse(storedTasks);
-                const updatedTasks = tasks.filter((t: Task) => t.id !== id);
-                await AsyncStorage.setItem(
-                  "tasks",
-                  JSON.stringify(updatedTasks)
-                );
-                router.back();
+              const response = await fetch(`${API_URL}/todos/${id}`, {
+                method: "DELETE",
+              });
+
+              if (!response.ok) {
+                throw new Error("Erro ao excluir a tarefa.");
               }
+
+              Alert.alert("Sucesso", "Tarefa excluída com sucesso!");
             } catch (error) {
-              console.error("Error deleting task:", error);
+              console.error("Erro ao excluir a tarefa:", error);
+              Alert.alert("Erro", "Não foi possível excluir a tarefa.");
             }
           },
         },
@@ -134,10 +136,7 @@ export default function TaskDetails() {
     <Container>
       <Card>
         <Title>Detalhes da Tarefa</Title>
-        <Description>{task.description}</Description>
-        <DateText>
-          Criada em: {new Date(task.createdAt).toLocaleString("pt-BR")}
-        </DateText>
+        <Description>{task.title}</Description>
         <StatusContainer>
           <Ionicons
             name={task.completed ? "checkmark-circle" : "ellipse-outline"}
@@ -153,7 +152,7 @@ export default function TaskDetails() {
             <Ionicons name="create" size={20} color="white" />
             <ButtonText>Editar</ButtonText>
           </Button>
-          <Button variant="danger" onPress={deleteTask}>
+          <Button variant="danger" onPress={() => deleteTask(task.id)}>
             <Ionicons name="trash" size={20} color="white" />
             <ButtonText>Excluir</ButtonText>
           </Button>
