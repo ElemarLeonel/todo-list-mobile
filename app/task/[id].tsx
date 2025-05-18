@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
 import { Task } from "../(tabs)";
@@ -133,31 +133,36 @@ export default function TaskDetails() {
   }
 
   return (
-    <Container>
-      <Card>
-        <Title>Detalhes da Tarefa</Title>
-        <Description>{task.title}</Description>
-        <StatusContainer>
-          <Ionicons
-            name={task.completed ? "checkmark-circle" : "ellipse-outline"}
-            size={24}
-            color={task.completed ? "#4CAF50" : "#666"}
-          />
-          <StatusText>
-            {task.completed ? "Tarefa concluída" : "Tarefa pendente"}
-          </StatusText>
-        </StatusContainer>
-        <ButtonsContainer>
-          <Button onPress={() => router.push(`/task/edit/${task.id}`)}>
-            <Ionicons name="create" size={20} color="white" />
-            <ButtonText>Editar</ButtonText>
-          </Button>
-          <Button variant="danger" onPress={() => deleteTask(task.id)}>
-            <Ionicons name="trash" size={20} color="white" />
-            <ButtonText>Excluir</ButtonText>
-          </Button>
-        </ButtonsContainer>
-      </Card>
-    </Container>
+    <>
+      <Stack.Screen
+        options={{ title: `Editando: ${task?.title || "Carregando..."}` }}
+      />
+      <Container>
+        <Card>
+          <Title>Detalhes da Tarefa</Title>
+          <Description>{task.title}</Description>
+          <StatusContainer>
+            <Ionicons
+              name={task.completed ? "checkmark-circle" : "ellipse-outline"}
+              size={24}
+              color={task.completed ? "#4CAF50" : "#666"}
+            />
+            <StatusText>
+              {task.completed ? "Tarefa concluída" : "Tarefa pendente"}
+            </StatusText>
+          </StatusContainer>
+          <ButtonsContainer>
+            <Button onPress={() => router.push(`/task/edit/${task.id}`)}>
+              <Ionicons name="create" size={20} color="white" />
+              <ButtonText>Editar</ButtonText>
+            </Button>
+            <Button variant="danger" onPress={() => deleteTask(task.id)}>
+              <Ionicons name="trash" size={20} color="white" />
+              <ButtonText>Excluir</ButtonText>
+            </Button>
+          </ButtonsContainer>
+        </Card>
+      </Container>
+    </>
   );
 }
