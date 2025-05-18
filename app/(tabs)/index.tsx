@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, TouchableOpacity, Alert } from "react-native";
+import {
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  RefreshControl,
+} from "react-native";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import styled from "styled-components/native";
@@ -73,6 +78,7 @@ const EmptyStateText = styled.Text`
 export default function TaskList() {
   const API_URL = process.env.API_URL || "http://192.168.1.7:3000";
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadTasks = useCallback(async () => {
     try {
@@ -81,7 +87,6 @@ export default function TaskList() {
       setTasks(data);
     } catch (error) {
       console.error("Erro ao carregar as tarefas:", error);
-      Alert.alert("Erro", "Não foi possível carregar as tarefas.");
     }
   }, []);
 
@@ -113,6 +118,14 @@ export default function TaskList() {
     }
   };
 
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadTasks();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
   const renderItem = ({ item }: { item: Task }) => (
     <TaskItem onPress={() => router.push(`/task/${item.id}`)}>
       <TouchableOpacity
@@ -133,6 +146,9 @@ export default function TaskList() {
   return (
     <Container edges={["bottom"]}>
       <FlatList
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         data={tasks}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}

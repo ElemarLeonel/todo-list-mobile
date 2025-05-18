@@ -53,31 +53,30 @@ const ButtonText = styled.Text`
 `;
 
 export default function NewTask() {
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState("");
+  const API_URL = process.env.API_URL || "http://192.168.1.7:3000";
 
   const createTask = async () => {
-    if (!description.trim()) {
-      Alert.alert("Erro", "Por favor, insira uma descrição para a tarefa.");
-      return;
-    }
-
     try {
-      const storedTasks = await AsyncStorage.getItem("tasks");
-      const tasks = storedTasks ? JSON.parse(storedTasks) : [];
+      const response = await fetch(`${API_URL}/todos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+        }),
+      });
 
-      const newTask: Task = {
-        id: Date.now().toString(),
-        description: description.trim(),
-        completed: false,
-        createdAt: new Date().toISOString(),
-      };
+      // if (!response.ok) {
+      //   throw new Error("Erro ao buscar a tarefa");
+      // }
 
-      const updatedTasks = [...tasks, newTask];
-      await AsyncStorage.setItem("tasks", JSON.stringify(updatedTasks));
+      const taskData = await response.json();
+      setTitle(taskData);
       router.back();
-    } catch (error) {
-      console.error("Error creating task:", error);
-      Alert.alert("Erro", "Não foi possível criar a tarefa.");
+    } catch (error: any) {
+      console.error("Erro ao carregar a tarefa:", error.message);
     }
   };
 
@@ -87,8 +86,8 @@ export default function NewTask() {
         <Title>Nova Tarefa</Title>
         <Input
           placeholder="Descrição da tarefa"
-          value={description}
-          onChangeText={setDescription}
+          value={title}
+          onChangeText={setTitle}
           multiline
           textAlignVertical="top"
         />

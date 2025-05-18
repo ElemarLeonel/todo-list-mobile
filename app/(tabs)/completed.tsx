@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { FlatList } from "react-native";
+import { FlatList, RefreshControl } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Task } from "./index";
 
 const Container = styled.View`
@@ -47,19 +46,27 @@ const EmptyStateText = styled.Text`
 `;
 
 export default function CompletedTasks() {
+  const API_URL = process.env.API_URL || "http://192.168.1.7:3000";
+  const [refreshing, setRefreshing] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const loadTasks = useCallback(async () => {
     try {
-      const storedTasks = await AsyncStorage.getItem("tasks");
-      if (storedTasks) {
-        const allTasks = JSON.parse(storedTasks);
-        setTasks(allTasks.filter((task: Task) => task.completed));
-      }
+      const response = await fetch(`${API_URL}/todos/completed`);
+      const data = await response.json();
+      setTasks(data);
     } catch (error) {
-      console.error("Error loading tasks:", error);
+      console.error("Erro ao carregar as tarefas completas:", error);
     }
   }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadTasks();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   useEffect(() => {
     loadTasks();
@@ -73,7 +80,7 @@ export default function CompletedTasks() {
         color="#4CAF50"
         style={{ marginRight: 8 }}
       />
-      <TaskText>{item.description}</TaskText>
+      <TaskText>{item.title}</TaskText>
       <Ionicons name="chevron-forward" size={24} color="#666" />
     </TaskItem>
   );
@@ -81,6 +88,9 @@ export default function CompletedTasks() {
   return (
     <Container>
       <FlatList
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         data={tasks}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
