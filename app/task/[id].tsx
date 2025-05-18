@@ -118,6 +118,7 @@ export default function TaskDetails() {
               }
 
               Alert.alert("Sucesso", "Tarefa excluída com sucesso!");
+              router.back();
             } catch (error) {
               console.error("Erro ao excluir a tarefa:", error);
               Alert.alert("Erro", "Não foi possível excluir a tarefa.");

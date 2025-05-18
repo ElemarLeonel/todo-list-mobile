@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import styled from "styled-components/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Task } from "../../(tabs)";
 
 const Container = styled.View`
@@ -51,8 +50,10 @@ const ButtonText = styled.Text`
 
 export default function EditTask() {
   const { id } = useLocalSearchParams();
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState("");
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [task, setTask] = useState<Task | null>(null);
+  const API_URL = process.env.API_URL || "http://192.168.1.7:3000";
 
   useEffect(() => {
     loadTask();
@@ -60,37 +61,40 @@ export default function EditTask() {
 
   const loadTask = async () => {
     try {
-      const storedTasks = await AsyncStorage.getItem("tasks");
-      if (storedTasks) {
-        const tasks = JSON.parse(storedTasks);
-        const foundTask = tasks.find((t: Task) => t.id === id);
-        if (foundTask) {
-          setTask(foundTask);
-          setDescription(foundTask.description);
-        }
+      const response = await fetch(`${API_URL}/todos/${id}`);
+
+      if (!response.ok) {
+        throw new Error("Erro ao buscar a tarefa");
       }
+
+      const taskData = await response.json();
+      setTask(taskData);
+      setTitle(taskData.title);
     } catch (error) {
-      console.error("Error loading task:", error);
+      console.error("Erro ao carregar a tarefa:", error);
     }
   };
 
   const updateTask = async () => {
-    if (!description.trim() || !task) {
-      return;
-    }
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
 
     try {
-      const storedTasks = await AsyncStorage.getItem("tasks");
-      if (storedTasks) {
-        const tasks = JSON.parse(storedTasks);
-        const updatedTasks = tasks.map((t: Task) =>
-          t.id === id ? { ...t, description: description.trim() } : t
-        );
-        await AsyncStorage.setItem("tasks", JSON.stringify(updatedTasks));
-        router.back();
-      }
+      const response = await fetch(`${API_URL}/todos/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: task.title,
+          completed: !task.completed,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Erro ao atualizar a tarefa");
+
+      const updatedTask = await response.json();
+      setTasks((prev) => prev.map((t) => (t.id === id ? updatedTask : t)));
     } catch (error) {
-      console.error("Error updating task:", error);
+      console.error("Erro ao finalizar a tarefa:", error);
     }
   };
 
@@ -99,21 +103,23 @@ export default function EditTask() {
   }
 
   return (
-    <Container>
-      <Card>
-        <Title>Editar Tarefa</Title>
-        <Input
-          placeholder="Descrição da tarefa"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-        />
-        <Button onPress={updateTask}>
-          <ButtonText>Salvar Alterações</ButtonText>
-        </Button>
-      </Card>
-    </Container>
+    <>
+      <Container>
+        <Card>
+          <Title>Editar Tarefa</Title>
+          <Input
+            placeholder="Descrição da tarefa"
+            value={title}
+            onChangeText={setTitle}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+          <Button onPress={updateTask}>
+            <ButtonText>Salvar Alterações</ButtonText>
+          </Button>
+        </Card>
+      </Container>
+    </>
   );
 }
