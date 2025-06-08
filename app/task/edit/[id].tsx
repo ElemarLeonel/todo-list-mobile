@@ -1,7 +1,14 @@
+// Hooks do React e uso de parâmetros da URL com expo-router
 import { useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
+
+// Estilização com styled-components
 import styled from "styled-components/native";
+
+// Tipo Task reutilizado da tela de tarefas
 import { Task } from "../../(tabs)";
+
+// === COMPONENTES ESTILIZADOS ===
 
 const Container = styled.View`
   flex: 1;
@@ -48,17 +55,23 @@ const ButtonText = styled.Text`
   font-weight: bold;
 `;
 
+// === COMPONENTE PRINCIPAL ===
+
 export default function EditTask() {
-  const { id } = useLocalSearchParams();
-  const [title, setTitle] = useState("");
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [task, setTask] = useState<Task | null>(null);
+  const { id } = useLocalSearchParams(); // Captura o ID da URL dinâmica
+
+  const [title, setTitle] = useState(""); // Armazena o novo título da tarefa
+  const [tasks, setTasks] = useState<Task[]>([]); // Lista de tarefas (não está sendo usada corretamente)
+  const [task, setTask] = useState<Task | null>(null); // Armazena a tarefa a ser editada
+
   const API_URL = process.env.API_URL || "http://192.168.1.7:3000";
 
+  // Carrega a tarefa ao montar o componente
   useEffect(() => {
     loadTask();
   }, [id]);
 
+  // Função para buscar os dados da tarefa
   const loadTask = async () => {
     try {
       const response = await fetch(`${API_URL}/todos/${id}`);
@@ -68,36 +81,37 @@ export default function EditTask() {
       }
 
       const taskData = await response.json();
-      setTask(taskData);
-      setTitle(taskData.title);
+      setTask(taskData);         // Armazena no estado
+      setTitle(taskData.title);  // Preenche o campo de edição
     } catch (error) {
       console.error("Erro ao carregar a tarefa:", error);
     }
   };
 
+  // Função para enviar as alterações para a API
   const updateTask = async () => {
-    const task = tasks.find((t) => t.id === id);
-    if (!task) return;
+    if (!title.trim()) return;
 
     try {
       const response = await fetch(`${API_URL}/todos/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: task.title,
-          completed: !task.completed,
+          title,                 // Usa o novo título
+          completed: task?.completed || false, // Mantém o status atual
         }),
       });
 
       if (!response.ok) throw new Error("Erro ao atualizar a tarefa");
 
-      const updatedTask = await response.json();
-      setTasks((prev) => prev.map((t) => (t.id === id ? updatedTask : t)));
+      // Se quiser, pode redirecionar para outra tela
+      // router.back();
     } catch (error) {
-      console.error("Erro ao finalizar a tarefa:", error);
+      console.error("Erro ao atualizar a tarefa:", error);
     }
   };
 
+  // Se os dados ainda não carregaram, não renderiza a tela
   if (!task) {
     return null;
   }
@@ -107,6 +121,8 @@ export default function EditTask() {
       <Container>
         <Card>
           <Title>Editar Tarefa</Title>
+
+          {/* Campo de edição do título */}
           <Input
             placeholder="Descrição da tarefa"
             value={title}
@@ -115,6 +131,8 @@ export default function EditTask() {
             numberOfLines={4}
             textAlignVertical="top"
           />
+
+          {/* Botão para salvar a alteração */}
           <Button onPress={updateTask}>
             <ButtonText>Salvar Alterações</ButtonText>
           </Button>
